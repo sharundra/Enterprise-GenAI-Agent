@@ -18,3 +18,18 @@ Connecting the laptop to AWS --
     AWS_DEFAULT_REGION=us-east-1  # Or us-west-2, depending on where you requested Bedrock access
 
 
+Setting up LangSmith for Observability and triggering the bedrock model from local
+1. Create a python venv -- python -m venv genai_venv
+2. Activate the venv and select this venv as interpreter in VSCode
+3. pip install -r requirements.txt
+4.  Set up LangSmith --
+    Signup with github on smith.langchain.com
+    Settings --> API keys --> Create API key --> copy the key
+    Add this key in .env file
+5. Write test_bedrock.py to check if my laptop can successfully authenticate with AWS and trigger Bedrock model
+6. Check the langsmith dashboard to see the visual trace of API calls that we made ny running test_bedrock.py
+
+
+
+
+

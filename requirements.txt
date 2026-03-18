@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+langchain
+langchain-aws
+langgraph
+boto3
+python-dotenv
+pymupdf
+chromadb
