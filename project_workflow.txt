@@ -1,0 +1,20 @@
+Setting up AWS Account --
+1. Log into AWS management console
+Can be done as a root user
+2. Select region -- US East (N. Virginia) us-east-1 OR US West (Oregon) us-west-2 to access newest models of Amazon Bedrock etc.
+3. Set up billing alram -- budgets --> create budget --> simplified and zero spend budget --> mention email -->save
+4. Amazon Bedrock 
+amazon bedrock --> model catalog --> anthropic model sonnet 4 --> open in playground --> fill the form (only first time) --> chat/text playground --> type Hello and see if the model is working
+5. Creating our IAM user
+IAM --> users --> create users --> "select a name" then do attach policies directly --> administrator access --> select next and click on 'create user'
+Click on this user --> ''security credentials'' tab --> access keys --> 'create access key' -->select 'local code' --> click next --> copy the 'access key id' and 'secret access key' immediately
+
+
+Connecting the laptop to AWS -- 
+1. Create one .env file 
+2. Put up this, 
+    AWS_ACCESS_KEY_ID=your_access_key_here
+    AWS_SECRET_ACCESS_KEY=your_secret_key_here
+    AWS_DEFAULT_REGION=us-east-1  # Or us-west-2, depending on where you requested Bedrock access
+
+
