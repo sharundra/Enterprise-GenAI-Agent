@@ -29,7 +29,16 @@ Setting up LangSmith for Observability and triggering the bedrock model from loc
 5. Write test_bedrock.py to check if my laptop can successfully authenticate with AWS and trigger Bedrock model
 6. Check the langsmith dashboard to see the visual trace of API calls that we made ny running test_bedrock.py
 
+Creating a local database for structured data and S3 bucket where unstructured PDF data would be uploaded
+1. Create a local db using setup_db.py and verify it in the local folder
+2. Set up S3 bucket 
+    S3 --> create bucket --> give a globally unique name --> leave this checked, 'block all public access' -->create bucket. 
+    Keep the unique bucket name handy to mention in the script where S3 bucket will be used.
+3. Have a sample_policy.pdf in the project folder
+4. Write a script 'document_utils.py' to extract text from the pdf using PyMuPDF and then upload the pdf to s3 bucket. 
+    Test it and manually check S3 bucket if data is there.
 
+    
 
 
 
