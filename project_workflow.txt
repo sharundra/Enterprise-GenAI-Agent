@@ -38,7 +38,23 @@ Creating a local database for structured data and S3 bucket where unstructured P
 4. Write a script 'document_utils.py' to extract text from the pdf using PyMuPDF and then upload the pdf to s3 bucket. 
     Test it and manually check S3 bucket if data is there.
 
-    
+Creating rag tool
+1. Write rag_pipeline.py which loads a pdf, chunks it, creates embeddings and puts them in local chrome db.
+    This rag tool will be used by supervisor agent to route between this or structured data stored in SQLite db.
+    Test this rag tool standalone.
+
+Creating the supervisor agent 
+1. Write agent.py which based upon query goes to either SQLite db tool or vector db tool or both of them and synthesizes the final answer and returns.
+
+Creating FastAPI and Observability
+1. Write main.py to create endpoints/APIs for uploading the pdf to S3 and also asking queries to custom agent.
+2. Since FastAPI requires a web server Uvicorn to run so run this code using this command, "uvicorn main:app --reload"
+3. Access the swagger UI at http://127.0.0.1:8000/docs or http://localhost:8000/docs and ask any query in /ask-custom-agent endpoint.
+4. Can close the server by ctrl+calls
+
+
+
+
 
 
 

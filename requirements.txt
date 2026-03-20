@@ -7,3 +7,6 @@ boto3
 python-dotenv
 pymupdf
 chromadb
+langchain-text-splitters
+langchain-community
+langchain-chroma
