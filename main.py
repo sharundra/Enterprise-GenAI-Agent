@@ -1,7 +1,7 @@
 import os
 import shutil
 import re
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -10,6 +10,7 @@ from document_utils import upload_to_s3
 from rag_pipeline import ingest_pdf_to_chroma
 from agent import agent_app
 from langchain_core.messages import HumanMessage
+import sqlite3
 
 load_dotenv()
 
@@ -27,7 +28,7 @@ class QueryRequest(BaseModel):
 # ==========================================
 # ENDPOINT 1: Upload Document
 # ==========================================
-@app.post("/upload")
+@app.post("/upload", include_in_schema=False)
 async def upload_document(file: UploadFile = File(...)):
     """
     Receives a PDF, saves it temporarily, uploads to S3, and ingests into ChromaDB.
@@ -62,7 +63,7 @@ async def upload_document(file: UploadFile = File(...)):
 # ==========================================
 # ENDPOINT 2: Ask the Custom LangGraph Agent
 # ==========================================
-@app.post("/ask-custom-agent")
+@app.post("/ask-custom-agent", include_in_schema=False)
 async def ask_custom_agent(request: QueryRequest):
     """
     Sends a user query to our explicit LangGraph Supervisor Agent.
@@ -100,8 +101,39 @@ async def ask_custom_agent(request: QueryRequest):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+# ==========================================
+# ENDPOINT 3: For the Bedrock Managed Agent
+# ==========================================
+@app.get("/api/get-employee-data", operation_id="get_employee_data")
+async def get_employee_data(
+    employee_id: int = Query(..., description="The unique numeric ID of the employee to look up.")
+):
+    """
+    Fetches the leave balance and department for a specific employee.
+    The Bedrock Agent will call this endpoint automatically.
+    """
+    try:
+        conn = sqlite3.connect('company_data.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT name, department, leave_days_remaining FROM employee_balances WHERE employee_id = ?", (employee_id,))
+        result = cursor.fetchone()
+        conn.close()
+        
+        if result:
+            return {
+                "employee_id": employee_id,
+                "name": result[0],
+                "department": result[1],
+                "leave_days_remaining": result[2]
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Employee not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Health check endpoint for AWS ECS Fargate later
-@app.get("/health")
+@app.get("/health", include_in_schema=False)
 async def health_check():
     return {"status": "healthy"}

@@ -50,7 +50,24 @@ Creating FastAPI and Observability
 1. Write main.py to create endpoints/APIs for uploading the pdf to S3 and also asking queries to custom agent.
 2. Since FastAPI requires a web server Uvicorn to run so run this code using this command, "uvicorn main:app --reload"
 3. Access the swagger UI at http://127.0.0.1:8000/docs or http://localhost:8000/docs and ask any query in /ask-custom-agent endpoint.
-4. Can close the server by ctrl+calls
+4. Check the traces at langsmith dashboard
+5. Can close the server by ctrl+c
+
+Creating bedrock "managed" agent and an action tool
+1. Add the SQL endpoint code to FastAPI
+2. Get the OpenAPI schema 
+    # Go to localhost:8000/openapi.json and save this json as openapi.json in the the project folder.
+        #FastAPI provides this openapi.json file which Bedrock agents/llm use to talk to FastAPI. When we upload this json to Bedrock,
+         bedrock translates it into a massive prompt to instruct llm regarding how to interact with FastAPI.
+3.Creating Knowledge Base (unsuccessful)
+Bedrock --> knwoledge bases --> create (knowledge base with vector store) --> kb name, data source as S3 --> browse to data in S3 --> Titan embedding v2 for embedding option and Quick create a new vector store as Vector Store option (it creates an opensearch db) --> review and create Knowledge base
+4.Creating Action Group and mimicking local FastAPI and SQLite interactin with Bedrock agent and action group
+    i. Upload openapi.json to S3 bucket
+    ii. Create a default/template agent without creating action group --  Bedrock --> agents -->Action group name as "FetchEmployeeData" --> create
+    iii. Add action group to this agent -- Bedrock --> agents --> Action group name as "FetchEmployeeData" --> "instructions for the agent" --> Dfine with API schema --> Action group invokation (return control) --> select an existing api schema --> browse and select the S3 path to openapi.json --> Save
+    iv. Now click on 'prepare' in the right side test window.
+    v. Ask this in chat prompt, "I am employee 104. What is my name, department, and leave balance?"
+        Put the relevant json in action required box --> submit --> see the answer.
 
 
 
