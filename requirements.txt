@@ -10,3 +10,4 @@ chromadb
 langchain-text-splitters
 langchain-community
 langchain-chroma
+python-multipart

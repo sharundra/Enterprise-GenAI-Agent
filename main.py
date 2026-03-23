@@ -28,7 +28,8 @@ class QueryRequest(BaseModel):
 # ==========================================
 # ENDPOINT 1: Upload Document
 # ==========================================
-@app.post("/upload", include_in_schema=False)
+# @app.post("/upload", include_in_schema=False)
+@app.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
     """
     Receives a PDF, saves it temporarily, uploads to S3, and ingests into ChromaDB.
@@ -63,7 +64,8 @@ async def upload_document(file: UploadFile = File(...)):
 # ==========================================
 # ENDPOINT 2: Ask the Custom LangGraph Agent
 # ==========================================
-@app.post("/ask-custom-agent", include_in_schema=False)
+# @app.post("/ask-custom-agent", include_in_schema=False)
+@app.post("/ask-custom-agent")
 async def ask_custom_agent(request: QueryRequest):
     """
     Sends a user query to our explicit LangGraph Supervisor Agent.
@@ -134,6 +136,7 @@ async def get_employee_data(
         raise HTTPException(status_code=500, detail=str(e))
 
 # Health check endpoint for AWS ECS Fargate later
-@app.get("/health", include_in_schema=False)
+# @app.get("/health", include_in_schema=False)
+@app.get("/health")
 async def health_check():
     return {"status": "healthy"}

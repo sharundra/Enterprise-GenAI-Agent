@@ -48,7 +48,7 @@ Creating the supervisor agent
 
 Creating FastAPI and Observability
 1. Write main.py to create endpoints/APIs for uploading the pdf to S3 and also asking queries to custom agent.
-2. Since FastAPI requires a web server Uvicorn to run so run this code using this command, "uvicorn main:app --reload"
+2. Since FastAPI requires a web server Uvicorn to run so run this code using this command, "uvicorn main:app --reload" or "python -m uvicorn main:app --reload"
 3. Access the swagger UI at http://127.0.0.1:8000/docs or http://localhost:8000/docs and ask any query in /ask-custom-agent endpoint.
 4. Check the traces at langsmith dashboard
 5. Can close the server by ctrl+c
@@ -70,8 +70,54 @@ Bedrock --> knwoledge bases --> create (knowledge base with vector store) --> kb
         Put the relevant json in action required box --> submit --> see the answer.
 
 
+Containerization and pushing the image to ECR
+1. Install Docker Desktop
+2. Install AWS CLI
+3. Run Docker desktop
+4. In project terminal --> aws configure --> put up access key id, secret access key, region name and output format(json)
+5. Create ECR repo -- 
+    Console --> ECR --> create repository --> repository name (enterprise-genai-agent) --> save
+6. On the ecr repo page, click radio button next to 'enterprise-genai-agent' and oepn 'view push commands' --> a pop up with 4 commands will open, run them in project terminal --> docker image will be built and pushed to ecr
+
+Deploying to ECS Fargate (which basically turns on the container, assigns it some CPU and RAM and exposes it to internet).
+First we create one IAM role using ECS task and give it some permissons..
+1. IAM --> roles --> create role --> select aws service --> ECS --> ecs Task
+2. Add permissions: Search for and check the boxes next to these THREE policies:
+AmazonECSTaskExecutionRolePolicy (Allows ECS to pull your image from ECR and write logs)
+AmazonBedrockFullAccess (Allows your Python code to talk to Nova/Claude)
+AmazonS3FullAccess (Allows your Python code to upload PDFs)
+3. role name --> genai fargate role --> create role
+
+Second, we create ECS cluster --
+1. ECS --> clusters --> create cluster --> name it as 'genai-cluster' --> check AWS Fargate (serverless) --> create 
+
+Third, create Task definition under ECS --
+1. ECS --> Task definitions --> create new task definition 
+2. task definition family name as 'genai-api-task' 
+3. Infrastruture requirements --> launch type as AWS Fargate --> OS as 'Linux/X86_64' --> task size as 0.5 vCPU and 1GB Memory --> Task role and Task execution role as 'GenAIFargateRole' which was created earlier
+4. Container - 1 --> name as 'fastapi-container' --> Image URI(from the ECR--> repositories, copy the URI corresponding to the docker image and paste it here) --> change container port to 8000
+5. Environment variables -- Add LangSmith keys here so your live app can still send traces
+    LANGCHAIN_TRACING_V2 | value is    true
+    LANGCHAIN_ENDPOINT | value is     https://api.smith.langchain.com
+    LANGCHAIN_API_KEY | value is      YOUR_LANGCHAIN_API_KEY
+    LANGCHAIN_PROJECT | value is      enterprise-genai-agent
+    Notice we do NOT put AWS Access Keys here! The IAM role handles that securely
+6. Launching the Fargate service
+    ECS --> Clusters --> click 'genai-cluster' --> services --> create --> choose 'capacity provider strategy' as compute option
+    Deployment configuration --> Application type : Service --> Task definition : Family "genai-api-task" and Revision "1 (LATEST)" --> service name as "genai-service" --> desired tasks : 1
+    Expand the Networking section --> VPC and Subnets: Leave as default --> "create a new security group" --> name : "fastapi-sg" --> Inbound rules : type to "custom TCP", port range to 8000 and source to Anywhere (this opens the firewall so the internet can reach our API) --> ensure 'public ip' is turned ON --> create.
+    AWS is now pulling our Docker image, booting up a serverless micro-VM, and starting our Python code. Let's find our public URL: inside 'genai-cluster' --> Tasks --> see the "RUNNIG" task and click on blue task id --> Configuration --> copy "Public IP"
+    Open a new browser tab and type -- http://PASTE_YOUR_PUBLIC_IP_HERE:8000/docs --> we'll see Swagger UI --> Now we have deployed a production-grade AI application to the cloud!
+   
+Note: In case we put up a new image in the registry, We will have to kill the old server, pull the new image, and start a new server.
+     And, because Fargate is serverless, every time it starts a new server, it gives us a brand new Public IP address.
+1. First push the image to ECR using 3 commands (build, tag to aws and push to cloud)
+2. Tell ECS to update : ECS console --> 'genai-cluster-v2' --> services --> 'genai-service' and click update --> select 'force new deployment' --> update
+3. Get new public IP : ECS console --> 'genai-cluster-v2' --> Tasks --> see the newly updated task RUNNING then click on the blue Task ID of the new running task --> copy the Public IP
+4. In a new browser tab, go to: http://PASTE_NEW_IP_HERE:8000/docs
 
 
-
-
+Shutting Down the ECS server (Stop Billing)
+1. AWS ECS Console --> Click on the cluster: genai-cluster-v2 --> In the Services tab, check the box next to genai-service --> Click the Update button --> Desired tasks: change the number from 1 to 0 --> Update.
+2. (Optional Verification): Click the Tasks tab. You will see running task change to DEACTIVATING and then disappear. App is now offline and costing nothing!
 
