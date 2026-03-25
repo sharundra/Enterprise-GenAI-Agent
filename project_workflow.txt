@@ -147,3 +147,14 @@ Deploying these new changes
 3. Click on tasks tab inside the cluster --> refresh and check if most recent task is RUNNING --> click on blue Task ID --> copy 'public ip' --> paste this into a new browser tab http://PASTE_NEW_IP_HERE:8000/docs
 4. ECS --> genai-cluster-2 --> check the box next to genai-service and click update --> set 'de sired-tasks' to 0 --> update.
 5. Verify -- ECS --> genai-cluster-2 --> tasks --> refresh --> last status should be 'stopped'
+
+
+
+Writing Lambda function for Bedrock agent and decoupling it from FastAPI :
+1. AWS console --> lambda --> create function --> Function name: get-employee-data-lambda --> runtime : Python3.11 --> architecture: x86_64 --> Change default execution role --> create a dault role --> Create function
+2. lambda --> get-employee-data-lambda --> configuration --> permissions --> click on role name (something like get-employee-data-lambda-role-xxxx), it opens IAM consloe --> Add permissions --> attach policies --> look for 'AmazonDynamoDBReadOnlyAccess' or 'AmazonDynamoDBFullAccess' --> Add permissions
+3. lambda --> get-employee-data-lambda --> Code --> put the code here --> Deploy
+4. lambda --> get-employee-data-lambda --> Configuration --> Permissions --> Resource-based policy statements --> Add Permissions --> AWS Service --> select Other if Bedrock not in dropdown --> 'Principal': bedrock.amazonaws.com, 'Statement ID' : AllowBedrockToInvoke, 'Action': lambda:InvokeFunction, 'Source ARN' : arn:aws:bedrock:us-east-1:317492542182:agent/* --> Save
+4. Update the Bedrock agent : Bedrock console --> Agents --> 'managed-HR-Agent' --> edit in Agetn Builder --> click on action group 'FetchEmployeeData' --> Change Action Group invokation from 'retrun control' to 'select an existing Lamba Function' and in select 'get-employee-data-lambda' function --> save --> save the Agent builder too.
+5. Agent builder --> 'Prepare' in Test Window --> ask the query.
+Optional: While the agent is thinking, open your Lambda function in a new tab, go to the Monitor tab, and click View CloudWatch logs. You will see the Lambda function's print statements as it executes!
