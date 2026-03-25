@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import boto3
 from dotenv import load_dotenv
 
 # Core LangChain & LangGraph imports
@@ -18,31 +19,54 @@ load_dotenv()
 # ==========================================
 # 1. DEFINE THE TOOLS (The Workers)
 # ==========================================
-@tool
-def query_employee_database(sql_query: str) -> str:
-    """
-    Executes a SQL query against the company SQLite database.
-    The database has one table named 'employee_balances' with columns:
-    - employee_id (INTEGER)
-    - name (TEXT)
-    - department (TEXT)
-    - leave_days_remaining (INTEGER)
+# @tool
+# def query_employee_database(sql_query: str) -> str:
+#     """
+#     Executes a SQL query against the company SQLite database.
+#     The database has one table named 'employee_balances' with columns:
+#     - employee_id (INTEGER)
+#     - name (TEXT)
+#     - department (TEXT)
+#     - leave_days_remaining (INTEGER)
     
-    ONLY pass valid SQL SELECT queries to this tool.
-    """
-    print(f"\n[Worker Node] Executing SQL Query: {sql_query}")
-    try:
-        conn = sqlite3.connect('company_data.db')
-        cursor = conn.cursor()
-        cursor.execute(sql_query)
-        results = cursor.fetchall()
-        conn.close()
+#     ONLY pass valid SQL SELECT queries to this tool.
+#     """
+#     print(f"\n[Worker Node] Executing SQL Query: {sql_query}")
+#     try:
+#         conn = sqlite3.connect('company_data.db')
+#         cursor = conn.cursor()
+#         cursor.execute(sql_query)
+#         results = cursor.fetchall()
+#         conn.close()
         
-        if not results:
-            return "No results found in the database."
-        return str(results)
+#         if not results:
+#             return "No results found in the database."
+#         return str(results)
+#     except Exception as e:
+#         return f"SQL Error: {e}"
+    
+
+@tool
+def query_employee_database(employee_id: int) -> str:
+    """
+    Fetches employee data and leave balances from the company database.
+    Pass ONLY the numeric employee_id to this tool (e.g., 104).
+    """
+    print(f"\n[Worker Node] Fetching DynamoDB record for Employee ID: {employee_id}")
+    try:
+        dynamodb = boto3.resource('dynamodb', region_name=os.getenv("AWS_DEFAULT_REGION"))
+        table = dynamodb.Table('employee_balances')
+        
+        # Fetch the item using the Partition Key
+        response = table.get_item(Key={'employee_id': int(employee_id)})
+        
+        if 'Item' in response:
+            return str(response['Item'])
+        else:
+            return f"No record found for employee ID {employee_id}."
     except Exception as e:
-        return f"SQL Error: {e}"
+        return f"Database Error: {e}"
+
 
 tools = [search_policy_documents, query_employee_database]
 

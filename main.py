@@ -1,6 +1,7 @@
 import os
 import shutil
 import re
+import boto3
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -108,32 +109,59 @@ async def ask_custom_agent(request: QueryRequest):
 # ==========================================
 # ENDPOINT 3: For the Bedrock Managed Agent
 # ==========================================
+# @app.get("/api/get-employee-data", operation_id="get_employee_data")
+# async def get_employee_data(
+#     employee_id: int = Query(..., description="The unique numeric ID of the employee to look up.")
+# ):
+#     """
+#     Fetches the leave balance and department for a specific employee.
+#     The Bedrock Agent will call this endpoint automatically.
+#     """
+#     try:
+#         conn = sqlite3.connect('company_data.db')
+#         cursor = conn.cursor()
+#         cursor.execute("SELECT name, department, leave_days_remaining FROM employee_balances WHERE employee_id = ?", (employee_id,))
+#         result = cursor.fetchone()
+#         conn.close()
+        
+#         if result:
+#             return {
+#                 "employee_id": employee_id,
+#                 "name": result[0],
+#                 "department": result[1],
+#                 "leave_days_remaining": result[2]
+#             }
+#         else:
+#             raise HTTPException(status_code=404, detail="Employee not found")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+    
+
 @app.get("/api/get-employee-data", operation_id="get_employee_data")
 async def get_employee_data(
     employee_id: int = Query(..., description="The unique numeric ID of the employee to look up.")
 ):
-    """
-    Fetches the leave balance and department for a specific employee.
-    The Bedrock Agent will call this endpoint automatically.
-    """
     try:
-        conn = sqlite3.connect('company_data.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT name, department, leave_days_remaining FROM employee_balances WHERE employee_id = ?", (employee_id,))
-        result = cursor.fetchone()
-        conn.close()
+        dynamodb = boto3.resource('dynamodb', region_name=os.getenv("AWS_DEFAULT_REGION"))
+        table = dynamodb.Table('employee_balances')
         
-        if result:
+        response = table.get_item(Key={'employee_id': employee_id})
+        
+        if 'Item' in response:
+            # DynamoDB returns Decimals for numbers, which JSON doesn't like. 
+            # We convert it to standard Python types before returning.
+            item = response['Item']
             return {
-                "employee_id": employee_id,
-                "name": result[0],
-                "department": result[1],
-                "leave_days_remaining": result[2]
+                "employee_id": int(item['employee_id']),
+                "name": str(item['name']),
+                "department": str(item['department']),
+                "leave_days_remaining": int(item['leave_days_remaining'])
             }
         else:
             raise HTTPException(status_code=404, detail="Employee not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # Health check endpoint for AWS ECS Fargate later
 # @app.get("/health", include_in_schema=False)

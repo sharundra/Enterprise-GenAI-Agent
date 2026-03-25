@@ -121,3 +121,29 @@ Shutting Down the ECS server (Stop Billing)
 1. AWS ECS Console --> Click on the cluster: genai-cluster-v2 --> In the Services tab, check the box next to genai-service --> Click the Update button --> Desired tasks: change the number from 1 to 0 --> Update.
 2. (Optional Verification): Click the Tasks tab. You will see running task change to DEACTIVATING and then disappear. App is now offline and costing nothing!
 
+
+
+Updates:
+
+Moving the structured data from SQLite to DynamoDB --
+1. AWS console --> DynamoDB --> create table --> table name as 'employee_balances' --> partition key as 'employee_id' and data type as Number (this is our Primary key we will use to look up our employees) --> create table 
+2. In the project folder, write setup_dynamodb.py and since .env has admin IAM keys, this script utilizing boto3 would be writing table entries to vloud database --> run the script.
+3. Update the function 'query_employee_database()' in the script 'agent.py'.
+4. Update the 'get_employee_data()' function in FastAPI used by Bedrock managed agent.
+5. Test locally --> run the command, "python -m uvicorn main:app --reload" in the VSCode terminal --> ask a question 'I am employee 103 and how many leaves are remaining for me' to ask-custom-agent endpoint in Swagger UI.
+
+
+Testing the Bedrock managed agent and local FastAPI --
+1. Make sure app is running locally
+2. AWS console --> Bedrock --> agents --> 'managed-hr-agent' --> ask a question in test console (I am employee 102 and how many days of leaves are remainnig for me) --> it will give a box asking for action group function output --> go to local swagger UI --> put 102 in 'get_employee_data' API --> copy the dictionary it returns and flatten it --> paste into the agent box -->Bedrock agent returns the final answer after synthesizing it.
+
+Side note -- 2 ways Bedrock agent is automated  
+1. Return Control method(Bedrock programmatically asks the application code to fetch the data) -- We have an app which is having backend and frontend. User asks a question to UI which sends it to backend which sends it to Bedrock agent. Now this llm agent realizes that it needs to access an API then sends that API request back to backend which process it and returns the result to agent. Agent synthesizes final answer and sends this to backend which sends it to UI. 
+2. AWS Lambda function method (We are directly interacting to Bedrock agent) -- Attach a lambda function directly to Bedrock agent. We send our question to agent, it realizes that it needs to access some Lambda service and then it triggers Lambda function. Lambda queries DynamoDB or does something else and then returns the data back to agent which synthesizes final answer for user.  
+
+Deploying these new changes 
+1. RUn 4 commands from VSCode terminal of project -- logging into ECR from local terminal, image building, tagging and pushing to ECR
+2. ECS --> genai-cluster-2 --> check the box next to genai-service and click update --> set 'desired-tasks' to 1 and chech the box of 'force new deployment' --> click on update.
+3. Click on tasks tab inside the cluster --> refresh and check if most recent task is RUNNING --> click on blue Task ID --> copy 'public ip' --> paste this into a new browser tab http://PASTE_NEW_IP_HERE:8000/docs
+4. ECS --> genai-cluster-2 --> check the box next to genai-service and click update --> set 'de sired-tasks' to 0 --> update.
+5. Verify -- ECS --> genai-cluster-2 --> tasks --> refresh --> last status should be 'stopped'
