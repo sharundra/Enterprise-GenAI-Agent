@@ -2,7 +2,7 @@ Setting up AWS Account --
 1. Log into AWS management console
 Can be done as a root user
 2. Select region -- US East (N. Virginia) us-east-1 OR US West (Oregon) us-west-2 to access newest models of Amazon Bedrock etc.
-3. Set up billing alram -- budgets --> create budget --> simplified and zero spend budget --> mention email -->save
+3. Set up billing alarm -- budgets --> create budget --> simplified and zero spend budget --> mention email -->save
 4. Amazon Bedrock 
 amazon bedrock --> model catalog --> anthropic model sonnet 4 --> open in playground --> fill the form (only first time) --> chat/text playground --> type Hello and see if the model is working
 5. Creating our IAM user
@@ -10,7 +10,7 @@ IAM --> users --> create users --> "select a name" then do attach policies direc
 Click on this user --> ''security credentials'' tab --> access keys --> 'create access key' -->select 'local code' --> click next --> copy the 'access key id' and 'secret access key' immediately
 
 
-Connecting the laptop to AWS -- 
+Connecting the local laptop to AWS -- 
 1. Create one .env file 
 2. Put up this, 
     AWS_ACCESS_KEY_ID=your_access_key_here
@@ -27,7 +27,7 @@ Setting up LangSmith for Observability and triggering the bedrock model from loc
     Settings --> API keys --> Create API key --> copy the key
     Add this key in .env file
 5. Write test_bedrock.py to check if my laptop can successfully authenticate with AWS and trigger Bedrock model
-6. Check the langsmith dashboard to see the visual trace of API calls that we made ny running test_bedrock.py
+6. Check the langsmith dashboard to see the visual trace of API calls that we made by running test_bedrock.py
 
 Creating a local database for structured data and S3 bucket where unstructured PDF data would be uploaded
 1. Create a local db using setup_db.py and verify it in the local folder
@@ -46,7 +46,7 @@ Creating rag tool
 Creating the supervisor agent 
 1. Write agent.py which based upon query goes to either SQLite db tool or vector db tool or both of them and synthesizes the final answer and returns.
 
-Creating FastAPI and Observability
+Creating FastAPI and Observability 
 1. Write main.py to create endpoints/APIs for uploading the pdf to S3 and also asking queries to custom agent.
 2. Since FastAPI requires a web server Uvicorn to run so run this code using this command, "uvicorn main:app --reload" or "python -m uvicorn main:app --reload"
 3. Access the swagger UI at http://127.0.0.1:8000/docs or http://localhost:8000/docs and ask any query in /ask-custom-agent endpoint.
@@ -61,10 +61,10 @@ Creating bedrock "managed" agent and an action tool
          bedrock translates it into a massive prompt to instruct llm regarding how to interact with FastAPI.
 3.Creating Knowledge Base (unsuccessful)
 Bedrock --> knwoledge bases --> create (knowledge base with vector store) --> kb name, data source as S3 --> browse to data in S3 --> Titan embedding v2 for embedding option and Quick create a new vector store as Vector Store option (it creates an opensearch db) --> review and create Knowledge base
-4.Creating Action Group and mimicking local FastAPI and SQLite interactin with Bedrock agent and action group
+4.Creating Action Group and mimicking local FastAPI and SQLite interaction with Bedrock agent and action group
     i. Upload openapi.json to S3 bucket
     ii. Create a default/template agent without creating action group --  Bedrock --> agents -->Action group name as "FetchEmployeeData" --> create
-    iii. Add action group to this agent -- Bedrock --> agents --> Action group name as "FetchEmployeeData" --> "instructions for the agent" --> Dfine with API schema --> Action group invokation (return control) --> select an existing api schema --> browse and select the S3 path to openapi.json --> Save
+    iii. Add action group to this agent -- Bedrock --> agents --> Action group name as "FetchEmployeeData" --> "instructions for the agent" --> Define with API schema --> Action group invokation (return control) --> select an existing api schema --> browse and select the S3 path to openapi.json --> Save
     iv. Now click on 'prepare' in the right side test window.
     v. Ask this in chat prompt, "I am employee 104. What is my name, department, and leave balance?"
         Put the relevant json in action required box --> submit --> see the answer.
@@ -127,7 +127,7 @@ Updates:
 
 Moving the structured data from SQLite to DynamoDB --
 1. AWS console --> DynamoDB --> create table --> table name as 'employee_balances' --> partition key as 'employee_id' and data type as Number (this is our Primary key we will use to look up our employees) --> create table 
-2. In the project folder, write setup_dynamodb.py and since .env has admin IAM keys, this script utilizing boto3 would be writing table entries to vloud database --> run the script.
+2. In the project folder, write setup_dynamodb.py and since .env has admin IAM keys, this script utilizing boto3 would be writing table entries to cloud database --> run the script.
 3. Update the function 'query_employee_database()' in the script 'agent.py'.
 4. Update the 'get_employee_data()' function in FastAPI used by Bedrock managed agent.
 5. Test locally --> run the command, "python -m uvicorn main:app --reload" in the VSCode terminal --> ask a question 'I am employee 103 and how many leaves are remaining for me' to ask-custom-agent endpoint in Swagger UI.
@@ -145,7 +145,7 @@ Deploying these new changes
 1. RUn 4 commands from VSCode terminal of project -- logging into ECR from local terminal, image building, tagging and pushing to ECR
 2. ECS --> genai-cluster-2 --> check the box next to genai-service and click update --> set 'desired-tasks' to 1 and chech the box of 'force new deployment' --> click on update.
 3. Click on tasks tab inside the cluster --> refresh and check if most recent task is RUNNING --> click on blue Task ID --> copy 'public ip' --> paste this into a new browser tab http://PASTE_NEW_IP_HERE:8000/docs
-4. ECS --> genai-cluster-2 --> check the box next to genai-service and click update --> set 'de sired-tasks' to 0 --> update.
+4. ECS --> genai-cluster-2 --> check the box next to genai-service and click update --> set 'desired-tasks' to 0 --> update.
 5. Verify -- ECS --> genai-cluster-2 --> tasks --> refresh --> last status should be 'stopped'
 
 
@@ -155,6 +155,10 @@ Writing Lambda function for Bedrock agent and decoupling it from FastAPI :
 2. lambda --> get-employee-data-lambda --> configuration --> permissions --> click on role name (something like get-employee-data-lambda-role-xxxx), it opens IAM consloe --> Add permissions --> attach policies --> look for 'AmazonDynamoDBReadOnlyAccess' or 'AmazonDynamoDBFullAccess' --> Add permissions
 3. lambda --> get-employee-data-lambda --> Code --> put the code here --> Deploy
 4. lambda --> get-employee-data-lambda --> Configuration --> Permissions --> Resource-based policy statements --> Add Permissions --> AWS Service --> select Other if Bedrock not in dropdown --> 'Principal': bedrock.amazonaws.com, 'Statement ID' : AllowBedrockToInvoke, 'Action': lambda:InvokeFunction, 'Source ARN' : arn:aws:bedrock:us-east-1:317492542182:agent/* --> Save
-4. Update the Bedrock agent : Bedrock console --> Agents --> 'managed-HR-Agent' --> edit in Agetn Builder --> click on action group 'FetchEmployeeData' --> Change Action Group invokation from 'retrun control' to 'select an existing Lamba Function' and in select 'get-employee-data-lambda' function --> save --> save the Agent builder too.
+4. Update the Bedrock agent : Bedrock console --> Agents --> 'managed-HR-Agent' --> edit in Agent Builder --> click on action group 'FetchEmployeeData' --> Change Action Group invokation from 'retrun control' to 'select an existing Lamba Function' and in select 'get-employee-data-lambda' function --> save --> save the Agent builder too.
 5. Agent builder --> 'Prepare' in Test Window --> ask the query.
 Optional: While the agent is thinking, open your Lambda function in a new tab, go to the Monitor tab, and click View CloudWatch logs. You will see the Lambda function's print statements as it executes!
+
+Adding new entries to DynamoDB 
+1. Add new rows to setup_dynamodb.py file and run python setup_dynamodb.py again. DyanmoDB doesn't duplicate but adds only new data to DB.
+2. If we just need to add one employee quickly -- DynamoDB console --> Explore items --> 'employee_balances' table --> create_item --> add 'employee_id' and add new attributes and save it. 
